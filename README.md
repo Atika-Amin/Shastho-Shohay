@@ -1,4 +1,4 @@
-# 🏥 ShasthyoShohay --- AI-powered Healthcare Support System
+# 🏥 ShasthyoShohay -- AI-powered Healthcare Support System
 
 A web-based AI healthcare assistant where patients, doctors, hospitals,
 and pharmacies can connect.\
