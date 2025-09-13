@@ -5,43 +5,6 @@ A web app where **patients, doctors, hospitals, and pharmacies** connect in one 
 
 ---
 
-## ⚡ Quick Start (TL;DR)
-Minimal things you need to run **UI + API on one port (4000)** with MySQL.
-
-### 1) `.env` (root)
-```bash
-# Server
-PORT=4000
-JWT_SECRET=replace_with_a_long_random_string
-
-# MySQL
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=yourpassword
-DB_NAME=shasthyo
-```
-
-### 2) MySQL bootstrap (very small)
-```sql
--- Create database (adjust name if you like)
-CREATE DATABASE IF NOT EXISTS shasthyo
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE shasthyo;
-```
-
-> Full table schema is provided further below in **Database Schema (MySQL)**. Run that after the bootstrap.
-
-### 3) Install & Run
-```bash
-npm install
-npm run dev           # http://localhost:4000  (Express + Vite single port)
-# Production-like:
-npm run build
-npm run preview       # http://localhost:4000  (serves dist/ + API)
-```
-
----
-
 ## 🚀 Features
 
 ### 👤 Patient
@@ -117,43 +80,29 @@ ShasthyoShohay/
 
 ---
 
-## 🔧 Scripts (package.json)
+## ⚡ Quick Start (TL;DR)
+Minimal things you need to run **UI + API on one port (4000)** with MySQL.
 
-```json
-{
-  "scripts": {
-    "dev": "nodemon server/index.js",
-    "build": "vite build",
-    "preview": "cross-env NODE_ENV=production node server/index.js",
-    "lint": "eslint ."
-  }
-}
-```
-> On macOS/Linux you can replace `cross-env NODE_ENV=production` with `NODE_ENV=production`.
+### 1) `.env` (root)
+```bash
+# Server
+PORT=4000
+JWT_SECRET=replace_with_a_long_random_string
 
----
-
-## 🔐 API (Auth & Registration)
-
-All endpoints are served from the **same origin & port (4000)**.
-
-| Method | Endpoint                    | Body (JSON)                                                                 | Notes |
-|-------:|-----------------------------|------------------------------------------------------------------------------|------|
-| POST   | `/api/patient/register`     | `{ name, phone, email, address, blood_group, password }`                    | Unique `email` & `phone` |
-| POST   | `/api/doctor/register`      | `{ name, phone, email, address, degree, specialization, registration_no, password }` | Unique `email`, `phone`, `registration_no` |
-| POST   | `/api/hospital/register`    | `{ name, phone, email, address, hospital_type, bed_number, password }`      | `bed_number >= 0` |
-| POST   | `/api/pharmacist/register`  | `{ name, phone, email, address, license_no, password }`                     | Unique `email`, `phone`, `license_no` |
-| POST   | `/api/auth/login`           | `{ role: 'patient'|'doctor'|'hospital'|'pharmacist', identifier, password }`| `identifier = email OR phone` |
-| GET    | `/api/me`                   | —                                                                            | Requires `Authorization: Bearer <JWT>` |
-
-**Response (login success):**
-```json
-{
-  "token": "jwt_token_here",
-  "user": { "id": 1, "role": "patient", "name": "John", "email": "x@y.z", "phone": "..." }
-}
+# MySQL
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=yourpassword
+DB_NAME=shasthyo
 ```
 
+### 2) MySQL bootstrap (very small)
+```sql
+-- Create database (adjust name if you like)
+CREATE DATABASE IF NOT EXISTS shasthyo
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE shasthyo;
+```
 ---
 
 ## 🗄️ Database Schema (MySQL)
@@ -232,6 +181,58 @@ CREATE TABLE pharmacist_users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
+
+### 3) Install & Run
+```bash
+npm install
+npm i express cors dotenv bcrypt mysql2 zod jsonwebtoken
+npm i -D nodemon cross-env
+
+npm run dev           # http://localhost:4000  (Express + Vite single port)
+# Production-like:
+npm run build
+npm run preview       # http://localhost:4000  (serves dist/ + API)
+```
+
+---
+
+## 🔧 Scripts (package.json)
+
+```json
+{
+  "scripts": {
+    "dev": "nodemon server/index.js",
+    "build": "vite build",
+    "preview": "cross-env NODE_ENV=production node server/index.js",
+    "lint": "eslint ."
+  }
+}
+```
+> On macOS/Linux you can replace `cross-env NODE_ENV=production` with `NODE_ENV=production`.
+
+---
+
+## 🔐 API (Auth & Registration)
+
+All endpoints are served from the **same origin & port (4000)**.
+
+| Method | Endpoint                    | Body (JSON)                                                                 | Notes |
+|-------:|-----------------------------|------------------------------------------------------------------------------|------|
+| POST   | `/api/patient/register`     | `{ name, phone, email, address, blood_group, password }`                    | Unique `email` & `phone` |
+| POST   | `/api/doctor/register`      | `{ name, phone, email, address, degree, specialization, registration_no, password }` | Unique `email`, `phone`, `registration_no` |
+| POST   | `/api/hospital/register`    | `{ name, phone, email, address, hospital_type, bed_number, password }`      | `bed_number >= 0` |
+| POST   | `/api/pharmacist/register`  | `{ name, phone, email, address, license_no, password }`                     | Unique `email`, `phone`, `license_no` |
+| POST   | `/api/auth/login`           | `{ role: 'patient'|'doctor'|'hospital'|'pharmacist', identifier, password }`| `identifier = email OR phone` |
+| GET    | `/api/me`                   | —                                                                            | Requires `Authorization: Bearer <JWT>` |
+
+**Response (login success):**
+```json
+{
+  "token": "jwt_token_here",
+  "user": { "id": 1, "role": "patient", "name": "John", "email": "x@y.z", "phone": "..." }
+}
+```
+
 ---
 
 ## 🧩 Frontend Notes
@@ -265,16 +266,6 @@ CREATE TABLE pharmacist_users (
 - Auth: **JWT** via `Authorization: Bearer <token>`  
 - Validation: **Zod** on all input  
 - Add rate limiting & `helmet` for production
-
----
-
-## 🗺️ Roadmap
-
-- ✅ Bangla + English UI  
-- ✅ Single-port deploy (Express + Vite)  
-- ⏳ AI integrations (symptom, Rx analysis)  
-- ⏳ Push notifications (reminders)  
-- ⏳ Mobile app (React Native)
 
 ---
 
