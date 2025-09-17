@@ -50,3 +50,21 @@ export const pharmacistReg = z.object({
   password: z.string().min(6),
   confirm_password: z.string().min(6)
 }).refine(d=>d.password===d.confirm_password,{path:["confirm_password"],message:"Passwords do not match"});
+
+export const healthSnapshot = z.object({
+  age: z.number().int().min(0).max(150).nullable().optional(),
+  height_cm: z.number().min(0).max(300).nullable().optional(),
+  weight_kg: z.number().min(0).max(700).nullable().optional(),
+  bp_sys: z.number().int().min(0).max(300).nullable().optional(),
+  bp_dia: z.number().int().min(0).max(200).nullable().optional(),
+}).refine(
+  (vals) => Object.values(vals).some((v) => v !== null && v !== undefined),
+  { message: "At least one field is required" }
+);
+
+export const bimaUpsert = z.object({
+  provider: z.string().min(1),
+  policy_no: z.string().min(1),
+  status: z.enum(["Active", "Pending", "Expired"]),
+  valid_till: z.string().date().nullable().optional().or(z.literal("")),
+});
