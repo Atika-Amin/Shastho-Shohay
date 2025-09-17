@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+// src/PatientRegister.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API = import.meta.env.VITE_API_URL || ""; // keep empty if same origin
 
 export default function PatientRegister() {
   const navigate = useNavigate();
@@ -19,13 +20,22 @@ export default function PatientRegister() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // clear any previous session so a new user doesn't inherit old auth
+  useEffect(() => {
+    try {
+      localStorage.removeItem("auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("token");
+    } catch {}
+  }, []);
+
   const onChange = (e) => {
     const { name, value } = e.target;
     setForm((s) => ({ ...s, [name]: value }));
   };
 
   const pickErrorMessage = (data) => {
-    // Handle Zod error shapes or plain strings
     if (data?.error?.formErrors?.formIssue?.length) {
       return data.error.formErrors.formIssue[0];
     }
@@ -41,33 +51,44 @@ export default function PatientRegister() {
     setErr("");
 
     // quick client-side checks
-    if (!form.blood_group) {
-      setErr("রক্তের গ্রুপ নির্বাচন করুন");
-      return;
-    }
-    if (form.password.length < 6) {
-      setErr("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
-      return;
-    }
-    if (form.password !== form.confirm_password) {
-      setErr("পাসওয়ার্ড মিলছে না");
-      return;
-    }
+    if (!form.blood_group) return setErr("রক্তের গ্রুপ নির্বাচন করুন");
+    if (form.password.length < 6)
+      return setErr("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
+    if (form.password !== form.confirm_password)
+      return setErr("পাসওয়ার্ড মিলছে না");
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/patient/register`, {
+      // 1) Register
+      const regRes = await fetch(`${API}/api/patient/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(pickErrorMessage(data));
+      const regData = await regRes.json();
+      if (!regRes.ok) throw new Error(pickErrorMessage(regData));
 
-      // success → go to your desired screen
-      navigate("/PatientDashboard");
+      // 2) Auto-login (no “remember me” UI; just store token)
+      const loginRes = await fetch(`${API}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "patient",
+          identifier: form.email, // login with email
+          password: form.password,
+        }),
+      });
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) throw new Error(pickErrorMessage(loginData));
+
+      // store auth (use localStorage so other pages can read it)
+      localStorage.setItem("auth", JSON.stringify(loginData)); // { token, user }
+      localStorage.setItem("token", loginData.token);
+
+      // 3) Go to dashboard
+      navigate("/PatientDashboard", { replace: true });
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "কিছু ভুল হয়েছে");
     } finally {
       setLoading(false);
     }
@@ -78,19 +99,16 @@ export default function PatientRegister() {
       className="h-screen w-screen flex justify-center items-center bg-cover bg-center relative"
       style={{ backgroundImage: "url('/image/patientRG.jpeg')" }}
     >
-      {/* Blur layer */}
       <div className="absolute inset-0 backdrop-blur-xs"></div>
 
       <form
         onSubmit={onSubmit}
         className="bg-[#CAD3D2]/85 rounded-2xl shadow-[0_5px_10px_rgba(0,0,0,0.6)] p-9 h-170 w-140 text-center relative"
       >
-        {/* Title */}
         <h1 className="text-3xl font-bold text-[#155C7F] mb-5">
           সহজে নিজের একাউন্ট তৈরি করুন
         </h1>
 
-        {/* Name */}
         <input
           name="name"
           type="text"
@@ -101,8 +119,6 @@ export default function PatientRegister() {
           maxLength={100}
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-
-        {/* Phone */}
         <input
           name="phone"
           type="tel"
@@ -114,8 +130,6 @@ export default function PatientRegister() {
           pattern="[0-9+\-()\s]{6,}"
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-
-        {/* Email */}
         <input
           name="email"
           type="email"
@@ -126,8 +140,6 @@ export default function PatientRegister() {
           maxLength={190}
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-
-        {/* Address */}
         <input
           name="address"
           type="text"
@@ -138,8 +150,6 @@ export default function PatientRegister() {
           maxLength={255}
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-
-        {/* Blood Group */}
         <select
           name="blood_group"
           value={form.blood_group}
@@ -157,8 +167,6 @@ export default function PatientRegister() {
           <option value="O+">O+</option>
           <option value="O-">O-</option>
         </select>
-
-        {/* Password */}
         <input
           name="password"
           type="password"
@@ -169,8 +177,6 @@ export default function PatientRegister() {
           minLength={6}
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-
-        {/* Confirm Password */}
         <input
           name="confirm_password"
           type="password"
@@ -182,7 +188,6 @@ export default function PatientRegister() {
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-5 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -191,7 +196,6 @@ export default function PatientRegister() {
           {loading ? "তৈরি হচ্ছে..." : "নতুন অ্যাকাউন্ট তৈরি করুন"}
         </button>
 
-        {/* Error */}
         {err && <p className="text-red-700 text-sm">{err}</p>}
       </form>
     </div>

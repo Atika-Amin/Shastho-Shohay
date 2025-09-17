@@ -39,6 +39,17 @@ export default function PatientDashboard() {
 
   const avatarSrc = avatarUrl || "/image/avatar-patient.png";
 
+  // NEW: logout handler
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("token");
+    } catch {}
+    navigate("/", { replace: true }); // go to Landing Page
+  };
+
   return (
     <div className="font-sans text-gray-800 bg-gradient-to-r from-[#1878A9] via-[#306C8E] via-[#005076] to-[#6B92A4]">
       {/* Top Bar */}
@@ -69,6 +80,30 @@ export default function PatientDashboard() {
               <span className="absolute -top-0.5 -right-0.5 px-1.5 py-0.5 text-[10px] font-medium bg-red-600 text-white rounded-full">
                 3
               </span>
+            </button>
+
+            {/* Logout (icon button) */}
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-full hover:bg-white/10"
+              aria-label="লগ আউট"
+              title="লগ আউট"
+            >
+              {/* lucide 'log-out' style SVG */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
             </button>
 
             {/* UPDATED: profile icon uses fetched avatar_url */}

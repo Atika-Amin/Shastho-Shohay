@@ -7,7 +7,8 @@ import PatientRegister from "./PatientRegister";
 import DoctorRegister from "./DoctorRegister";
 import HospitalRegister from "./HospitalRegister";
 import PharmacyRegister from "./PharmacyRegister";
-import PatienttDashboard from "./dashborad/PatientDashboard";
+import PatientDashboard from "./dashborad/PatientDashboard";
+import PatientProfile from "./pages/PatientProfile.jsx";
 function App() {
   return (
     <Router>
@@ -19,7 +20,8 @@ function App() {
         <Route path="/doctorRegister" element={<DoctorRegister />} />
         <Route path="/hospitalRegister" element={<HospitalRegister />} />
         <Route path="/pharmacyRegister" element={<PharmacyRegister />} />
-        <Route path="/PatientDashboard" element={<PatienttDashboard />} />
+        <Route path="/PatientDashboard" element={<PatientDashboard />} />
+        <Route path="/patientprofile" element={<PatientProfile />} />
       </Routes>
     </Router>
   );

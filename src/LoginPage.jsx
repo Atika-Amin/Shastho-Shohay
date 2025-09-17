@@ -1,25 +1,25 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API = import.meta.env.VITE_API_BASE || ""; // e.g. http://localhost:4000
+
 export default function LoginPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    role: "patient", // patient | doctor | hospital | pharmacist
+    role: "", // patient | doctor | hospital | pharmacist
     identifier: "", // email or phone
     password: "",
-    remember: true,
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const onChange = (e) => {
-    const { name, type, checked, value } = e.target;
-    setForm((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
+    const { name, value } = e.target;
+    setForm((s) => ({ ...s, [name]: value }));
   };
 
   const pickErrorMessage = (data) => {
-    // Handle Zod flatten or plain string errors coming from backend
     if (data?.error?.formErrors?.formIssue?.length) {
       return data.error.formErrors.formIssue[0];
     }
@@ -43,19 +43,14 @@ export default function LoginPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
-    if (!form.identifier.trim() || !form.password) {
-      setErr("ইমেইল/ফোন এবং পাসওয়ার্ড দিন");
-      return;
-    }
-    if (!form.role) {
-      setErr("রোল নির্বাচন করুন");
-      return;
-    }
 
+    if (!form.role) return setErr("রোল নির্বাচন করুন");
+    if (!form.identifier.trim() || !form.password)
+      return setErr("ইমেইল/ফোন এবং পাসওয়ার্ড দিন");
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`${API}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,12 +70,19 @@ export default function LoginPage() {
 
       if (!res.ok) throw new Error(pickErrorMessage(data));
 
-      const storage = form.remember
-        ? window.localStorage
-        : window.sessionStorage;
-      storage.setItem("auth", JSON.stringify(data)); // { token, user }
+      // Always reset old sessions and store new auth in localStorage only
+      localStorage.removeItem("auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("token");
 
-      navigate(routeForRole(form.role));
+      localStorage.setItem(
+        "auth",
+        JSON.stringify({ token: data.token, user: data.user })
+      );
+      localStorage.setItem("token", data.token); // convenience for old reads
+
+      navigate(routeForRole(form.role), { replace: true });
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -94,13 +96,12 @@ export default function LoginPage() {
       style={{ backgroundImage: "url('/image/background.webp')" }}
     >
       {/* Blur layer */}
-      <div className="absolute inset-0 backdrop-blur-xs"></div>
+      <div className="absolute inset-0 backdrop-blur"></div>
 
       <form
         onSubmit={onSubmit}
         className="bg-[#CAD3D2]/85 rounded-2xl shadow-[0_5px_10px_rgba(0,0,0,0.6)] p-9 h-160 w-140 text-center relative"
       >
-        {/* Title */}
         <h1 className="text-5xl font-bold text-[#155C7F] mb-1">
           আপনাকে স্বাগতম
         </h1>
@@ -108,7 +109,6 @@ export default function LoginPage() {
           আপনার স্বাস্থ্যের ডিজিটাল সহায়
         </p>
 
-        {/* Identifier */}
         <input
           name="identifier"
           type="text"
@@ -117,14 +117,15 @@ export default function LoginPage() {
           onChange={onChange}
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Role */}
+
         <select
           name="role"
           value={form.role}
           onChange={onChange}
+          required
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 px-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         >
-          <option value="" disabled>
+          <option value="" disabled className="text-gray-500">
             আপনার প্রয়োজন অনুযায়ী রোল নির্বাচন করুন
           </option>
           <option value="patient">Patient</option>
@@ -133,7 +134,6 @@ export default function LoginPage() {
           <option value="pharmacist">Pharmacist</option>
         </select>
 
-        {/* Password */}
         <input
           name="password"
           type="password"
@@ -143,19 +143,6 @@ export default function LoginPage() {
           className="w-full h-14 text-lg bg-[#F7F7F7] mb-4 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
-        {/* Remember me */}
-        <label className="flex items-center text-md text-[#155C7F] mb-4">
-          <input
-            name="remember"
-            type="checkbox"
-            checked={form.remember}
-            onChange={onChange}
-            className="mr-2 accent-[#155C7F]"
-          />
-          আমাকে মনে রাখুন
-        </label>
-
-        {/* Login button */}
         <button
           type="submit"
           disabled={loading}
@@ -164,10 +151,8 @@ export default function LoginPage() {
           {loading ? "সাইন ইন হচ্ছে..." : "আপনার একাউন্টে প্রবেশ করুন"}
         </button>
 
-        {/* Error */}
         {err && <p className="text-red-700 text-sm mb-3">{err}</p>}
 
-        {/* Forgot / Register */}
         <p className="text-md text-[#155C7F] mb-4">
           পাসওয়ার্ড ভুলে গেছেন? বা নতুন ব্যবহারকারী?{" "}
           <span
@@ -180,13 +165,12 @@ export default function LoginPage() {
 
         <p className="text-lg font-bold text-[#155C7F] mb-2">অথবা</p>
 
-        {/* Social login (placeholders) */}
         <div className="flex gap-3">
           <button
             type="button"
             disabled
             title="Coming soon"
-            className="flex-1 h-13 bg-[#155C7F] text-white py-2 rounded-lg hover:bg-[#00214D] transition flex items-center justify-center gap-2 "
+            className="flex-1 h-13 bg-[#155C7F] text-white py-2 rounded-lg hover:bg-[#00214D] transition flex items-center justify-center gap-2"
           >
             <img src="/image/google.png" alt="Google" className="w-6 h-6" />
             Google দিয়ে প্রবেশ
@@ -196,7 +180,7 @@ export default function LoginPage() {
             type="button"
             disabled
             title="Coming soon"
-            className="flex-1 h-13 bg-[#155C7F] text-white py-2 rounded-lg hover:bg-[#00214D] transition flex items-center justify-center gap-2 "
+            className="flex-1 h-13 bg-[#155C7F] text-white py-2 rounded-lg hover:bg-[#00214D] transition flex items-center justify-center gap-2"
           >
             <img src="/image/facebook.png" alt="Facebook" className="w-7 h-7" />
             Facebook দিয়ে প্রবেশ

@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+// src/HospitalRegister.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-
 
 export default function HospitalRegister() {
   const navigate = useNavigate();
@@ -18,6 +17,16 @@ export default function HospitalRegister() {
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  // ensure fresh session (avoid “previous user” problems)
+  useEffect(() => {
+    try {
+      localStorage.removeItem("auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("token");
+    } catch {}
+  }, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -44,8 +53,9 @@ export default function HospitalRegister() {
       form.bed_number === "" ||
       isNaN(Number(form.bed_number)) ||
       Number(form.bed_number) < 0
-    )
+    ) {
       return setErr("বেড সংখ্যা সঠিকভাবে দিন (০ বা তার বেশি)");
+    }
     if (form.password.length < 6)
       return setErr("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
     if (form.password !== form.confirm_password)
@@ -53,17 +63,35 @@ export default function HospitalRegister() {
 
     setLoading(true);
     try {
-      const payload = { ...form, bed_number: Number(form.bed_number) };
+      // send only the fields your server expects
+      const payload = {
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        address: form.address,
+        hospital_type: form.hospital_type,
+        bed_number: Number(form.bed_number),
+        password: form.password,
+      };
+
       const res = await fetch(`/api/hospital/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+
+      const txt = await res.text();
+      let data;
+      try {
+        data = JSON.parse(txt);
+      } catch {
+        data = { error: txt || "Server error" };
+      }
+
       if (!res.ok) throw new Error(pickErrorMessage(data));
 
       // success → go to login (or your hospital dashboard)
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -76,14 +104,12 @@ export default function HospitalRegister() {
       className="h-screen w-screen flex justify-center items-center bg-cover bg-center relative "
       style={{ backgroundImage: "url('/image/hospitalRG.webp')" }}
     >
-      {/* Blur layer */}
       <div className="absolute inset-0 backdrop-blur-xs"></div>
 
       <form
         onSubmit={onSubmit}
         className="bg-[#CAD3D2]/85 rounded-2xl shadow-[0_5px_10px_rgba(0,0,0,0.6)] p-9 h-170 w-140 text-center relative"
       >
-        {/* Title */}
         <h1 className="text-3xl font-bold text-[#155C7F] mb-5">
           হাসপাতালের তথ্য দিয়ে একাউন্ট খুলুন
         </h1>
@@ -96,7 +122,7 @@ export default function HospitalRegister() {
           onChange={onChange}
           required
           maxLength={150}
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="phone"
@@ -107,7 +133,7 @@ export default function HospitalRegister() {
           required
           maxLength={20}
           pattern="[0-9+\-()\s]{6,}"
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="email"
@@ -117,7 +143,7 @@ export default function HospitalRegister() {
           onChange={onChange}
           required
           maxLength={190}
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="address"
@@ -127,10 +153,9 @@ export default function HospitalRegister() {
           onChange={onChange}
           required
           maxLength={255}
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
-        {/* Type */}
         <select
           name="hospital_type"
           value={form.hospital_type}
@@ -144,7 +169,6 @@ export default function HospitalRegister() {
           <option value="Clinic">Clinic</option>
         </select>
 
-        {/* Beds */}
         <input
           name="bed_number"
           type="number"
@@ -155,7 +179,7 @@ export default function HospitalRegister() {
           value={form.bed_number}
           onChange={onChange}
           required
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
         <input
@@ -166,7 +190,7 @@ export default function HospitalRegister() {
           onChange={onChange}
           required
           minLength={6}
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="confirm_password"
@@ -176,7 +200,7 @@ export default function HospitalRegister() {
           onChange={onChange}
           required
           minLength={6}
-          className="w-full h-13 text-lg bg-[#F7F7F7] mb-4 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-13 text-lg bg-[#F7F7F7] mb-4 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
         <button

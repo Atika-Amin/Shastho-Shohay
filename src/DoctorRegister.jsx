@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+// src/DoctorRegister.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API = import.meta.env.VITE_API_URL || ""; // e.g. "http://localhost:4000"
 
 export default function DoctorRegister() {
   const navigate = useNavigate();
@@ -18,6 +20,16 @@ export default function DoctorRegister() {
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  // ensure fresh session for a new registration
+  useEffect(() => {
+    try {
+      localStorage.removeItem("auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("token");
+    } catch {}
+  }, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -39,7 +51,6 @@ export default function DoctorRegister() {
     e.preventDefault();
     setErr("");
 
-    // quick client-side validations
     if (!form.registration_no.trim()) return setErr("নিবন্ধন নম্বর (BMDC) দিন");
     if (form.password.length < 6)
       return setErr("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
@@ -48,18 +59,38 @@ export default function DoctorRegister() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/doctor/register`, {
+      // send ONLY expected fields to match your server validator
+      const payload = {
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        address: form.address,
+        degree: form.degree,
+        specialization: form.specialization,
+        registration_no: form.registration_no,
+        password: form.password,
+      };
+
+      const res = await fetch(`${API}/api/doctor/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
+
+      const txt = await res.text();
+      let data;
+      try {
+        data = JSON.parse(txt);
+      } catch {
+        data = { error: txt || "Server error" };
+      }
+
       if (!res.ok) throw new Error(pickErrorMessage(data));
 
-      // success → go to login (or a doctor dashboard if you prefer)
-      navigate("/login");
+      // success → go to login (or doctor dashboard if you want)
+      navigate("/login", { replace: true });
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "কিছু ভুল হয়েছে");
     } finally {
       setLoading(false);
     }
@@ -70,19 +101,16 @@ export default function DoctorRegister() {
       className="h-screen w-screen flex justify-center items-center bg-cover bg-center relative "
       style={{ backgroundImage: "url('/image/doctorRG.jpg')" }}
     >
-      {/* Blur layer */}
       <div className="absolute inset-0 backdrop-blur-xs"></div>
 
       <form
         onSubmit={onSubmit}
         className="bg-[#CAD3D2]/85 rounded-2xl shadow-[0_5px_10px_rgba(0,0,0,0.6)] p-9 h-170 w-140 text-center relative"
       >
-        {/* Title */}
         <h1 className="text-3xl font-bold text-[#155C7F] mb-4">
           আপনার চিকিৎসক প্রোফাইল তৈরি করুন
         </h1>
 
-        {/* Name */}
         <input
           name="name"
           type="text"
@@ -91,9 +119,8 @@ export default function DoctorRegister() {
           onChange={onChange}
           required
           maxLength={100}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Phone */}
         <input
           name="phone"
           type="tel"
@@ -103,9 +130,8 @@ export default function DoctorRegister() {
           required
           maxLength={20}
           pattern="[0-9+\-()\s]{6,}"
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Email */}
         <input
           name="email"
           type="email"
@@ -114,9 +140,8 @@ export default function DoctorRegister() {
           onChange={onChange}
           required
           maxLength={190}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Address */}
         <input
           name="address"
           type="text"
@@ -125,65 +150,59 @@ export default function DoctorRegister() {
           onChange={onChange}
           required
           maxLength={255}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Degree */}
         <input
           name="degree"
           type="text"
-          placeholder="আপনার ডিগ্রি (MBBS, FCPS ইত্যাদি) লিখুন"
+          placeholder="আপনার ডিগ্রি (MBBS, FCPS ইত্যাদি)"
           value={form.degree}
           onChange={onChange}
           required
           maxLength={120}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Specialization */}
         <input
           name="specialization"
           type="text"
-          placeholder="আপনার বিশেষত্ব  লিখুন"
+          placeholder="আপনার বিশেষত্ব"
           value={form.specialization}
           onChange={onChange}
           required
           maxLength={120}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Registration No */}
         <input
           name="registration_no"
           type="text"
-          placeholder="আপনার নিবন্ধন নম্বর (BMDC) লিখুন"
+          placeholder="নিবন্ধন নম্বর (BMDC)"
           value={form.registration_no}
           onChange={onChange}
           required
           maxLength={120}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Password */}
         <input
           name="password"
           type="password"
-          placeholder="আপনার পাসওয়ার্ড লিখুন"
+          placeholder="আপনার পাসওয়ার্ড"
           value={form.password}
           onChange={onChange}
           required
           minLength={6}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-2 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
-        {/* Confirm Password */}
         <input
           name="confirm_password"
           type="password"
-          placeholder="আপনার পাসওয়ার্ড পুনরায় লিখুন"
+          placeholder="পাসওয়ার্ড পুনরায় লিখুন"
           value={form.confirm_password}
           onChange={onChange}
           required
           minLength={6}
-          className="w-full h-12 text-lg bg-[#F7F7F7] mb-4 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-12 text-lg bg-[#F7F7F7] mb-4 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -192,7 +211,6 @@ export default function DoctorRegister() {
           {loading ? "তৈরি হচ্ছে..." : "নতুন অ্যাকাউন্ট তৈরি করুন"}
         </button>
 
-        {/* Error */}
         {err && <p className="text-red-700 text-sm">{err}</p>}
       </form>
     </div>

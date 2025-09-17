@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+// src/PharmacyRegister.jsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
+const API = import.meta.env.VITE_API_URL || ""; // e.g. "http://localhost:4000"
 
 export default function PharmacyRegister() {
   const navigate = useNavigate();
@@ -15,6 +18,16 @@ export default function PharmacyRegister() {
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  // Clear any previous auth so a new registration doesn't inherit it
+  useEffect(() => {
+    try {
+      localStorage.removeItem("auth");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("auth");
+      sessionStorage.removeItem("token");
+    } catch {}
+  }, []);
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -45,18 +58,26 @@ export default function PharmacyRegister() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/pharmacist/register`, {
+      const res = await fetch(`${API}/api/pharmacist/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
+
+      const txt = await res.text();
+      let data;
+      try {
+        data = JSON.parse(txt);
+      } catch {
+        data = { error: txt || "Server error" };
+      }
+
       if (!res.ok) throw new Error(pickErrorMessage(data));
 
       // success -> go to login
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (e) {
-      setErr(e.message);
+      setErr(e.message || "কিছু ভুল হয়েছে");
     } finally {
       setLoading(false);
     }
@@ -68,18 +89,16 @@ export default function PharmacyRegister() {
       style={{ backgroundImage: "url('/image/PharmacyRG.jpg')" }}
     >
       {/* Blur layer */}
-      <div className="absolute inset-0 backdrop-blur-xs"></div>
+      <div className="absolute inset-0 backdrop-blur-sm"></div>
 
       <form
         onSubmit={onSubmit}
         className="bg-[#CAD3D2]/85 rounded-2xl shadow-[0_5px_10px_rgba(0,0,0,0.6)] p-9 h-170 w-140 text-center relative"
       >
-        {/* Title */}
         <h1 className="text-3xl font-bold text-[#155C7F] mb-5">
           ফার্মেসির তথ্য দিয়ে রেজিস্ট্রেশন করুন
         </h1>
 
-        {/* Inputs */}
         <input
           name="name"
           type="text"
@@ -88,7 +107,7 @@ export default function PharmacyRegister() {
           onChange={onChange}
           required
           maxLength={100}
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="phone"
@@ -99,7 +118,7 @@ export default function PharmacyRegister() {
           required
           maxLength={20}
           pattern="[0-9+\-()\s]{6,}"
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="email"
@@ -109,7 +128,7 @@ export default function PharmacyRegister() {
           onChange={onChange}
           required
           maxLength={190}
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="address"
@@ -119,7 +138,7 @@ export default function PharmacyRegister() {
           onChange={onChange}
           required
           maxLength={255}
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="license_no"
@@ -129,7 +148,7 @@ export default function PharmacyRegister() {
           onChange={onChange}
           required
           maxLength={120}
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="password"
@@ -139,7 +158,7 @@ export default function PharmacyRegister() {
           onChange={onChange}
           required
           minLength={6}
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-3 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
         <input
           name="confirm_password"
@@ -149,10 +168,9 @@ export default function PharmacyRegister() {
           onChange={onChange}
           required
           minLength={6}
-          className="w-full h-14 text-lg bg-[#F7F7F7] mb-5 p-5 rounded-lg shadow-xl  focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
+          className="w-full h-14 text-lg bg-[#F7F7F7] mb-5 p-5 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-[#1D3E56]"
         />
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -161,7 +179,6 @@ export default function PharmacyRegister() {
           {loading ? "তৈরি হচ্ছে..." : "নতুন অ্যাকাউন্ট তৈরি করুন"}
         </button>
 
-        {/* Error */}
         {err && <p className="text-red-700 text-sm">{err}</p>}
       </form>
     </div>
