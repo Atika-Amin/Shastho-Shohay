@@ -85,15 +85,13 @@ Minimal things you need to run **UI + API on one port (4000)** with MySQL.
 
 ### 1) `.env` (root)
 ```bash
-# Server
 PORT=4000
-JWT_SECRET=replace_with_a_long_random_string
+JWT_SECRET=super_secret_for_local
 
-# MySQL
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=yourpassword
-DB_NAME=shasthyo
+DB_PASS=Mdhamim07
+DB_NAME=health_app
 ```
 
 ### 2) MySQL bootstrap (very small)
@@ -185,7 +183,7 @@ CREATE TABLE pharmacist_users (
 ### 3) Install & Run
 ```bash
 npm install
-npm i express cors dotenv bcrypt mysql2 zod jsonwebtoken
+npm i express cors dotenv bcrypt mysql2 zod jsonwebtoken multer
 npm i -D nodemon cross-env
 
 npm run dev           # http://localhost:4000  (Express + Vite single port)
