@@ -90,8 +90,8 @@ JWT_SECRET=super_secret_for_local
 
 DB_HOST=localhost
 DB_USER=root
-DB_PASS=Mdhamim07
-DB_NAME=health_app
+DB_PASS=yourdbpassword
+DB_NAME=shasthyo
 ```
 
 ### 2) MySQL bootstrap (very small)
